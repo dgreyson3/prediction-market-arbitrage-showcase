@@ -62,7 +62,7 @@ Paper mode simulates the two-leg workflow without submitting venue orders. The e
 
 ### 5. Automated Testing
 
-The project includes automated tests for pricing, normalization, matching, venue integrations, WebSocket behavior, risk checks, paper execution, live-execution logic, and failure handling.
+The project includes automated tests for pricing, normalization, matching, venue integrations, WebSocket behavior, risk checks, paper execution, live-execution logic, and failure handling. AI, specifically CODEX, was used to help with testing suites as well. 
 
 **Current test run: 225 passing tests.**
 
@@ -117,7 +117,7 @@ The project also includes terminal views, a read-only local dashboard, Discord a
 **Language:** Python 3.12+
 
 **APIs & Concurrency:** HTTPX · WebSockets · asyncio  
-**Data & Validation:** Pydantic · SQLAlchemy · PostgreSQL · Psycopg · Alembic  
+**Data & Validation:** Pydantic · SQLAlchemy · PostgreSQL · Alembic  
 **Reliability:** Tenacity · bounded concurrency · reconnect logic · REST fallback  
 **Interfaces:** Typer · Rich · Discord alerts · HTML/CSV reports  
 **Testing & Quality:** Pytest · pytest-asyncio · Ruff · MyPy  
