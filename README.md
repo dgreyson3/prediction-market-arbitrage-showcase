@@ -1,255 +1,172 @@
 # Cross-Venue Prediction Market Arbitrage Engine
 
-**A Python system for discovering, matching, and evaluating executable sports and esports opportunities across Kalshi and Polymarket.**
+**A Python system for matching and evaluating sports and esports prediction-market contracts across Kalshi and Polymarket.**
 
+**Active development** · **2026**
 
-> **Source code is private.** This repository is a public project showcase containing architecture, screenshots, and selected technical details. Exact strategy thresholds, matching rules, sizing logic, credentials, account data, and execution configuration are intentionally excluded.
+> **Source code is private.** This repository is a project showcase for the engineering, architecture, and behavior of the system without publishing proprietary matching, sizing, risk, or execution logic.
 
 ---
 
 ## What It Does
 
-The system connects to **Kalshi** and **Polymarket**, normalizes venue-specific market data into a shared model, matches equivalent binary contracts, and evaluates cross-venue opportunities using executable order-book depth.
+The engine connects to **Kalshi** and **Polymarket**, converts venue-specific market data into a shared internal model, matches equivalent binary contracts, and evaluates cross-venue opportunities using executable order-book depth.
 
-The pipeline considers:
+It accounts for:
 
-- Venue-specific market and outcome formats
-- Executable bid/ask depth
-- Fees and modeled slippage
-- Available liquidity
-- Data freshness
-- Configurable risk and capital checks
+- Order-book depth and available liquidity
+- Venue fees and modeled slippage
+- Market-data freshness
+- Capital and risk checks
+- Cross-venue contract compatibility
 
-The project supports multiple operating modes:
+The system supports:
 
 - **Read-only scanning**
 - **Discord-assisted manual review**
 - **Paper execution**
-- **Guarded live execution**, disabled by default and protected by multiple safety gates
+- **Deliberately gated live execution**, disabled by default
 
 The project is independent and is not affiliated with Kalshi or Polymarket.
 
 ---
 
-## System Overview
+## Demo Walkthrough
 
-```mermaid
-flowchart LR
-    K[Kalshi REST / WebSocket] --> A[Venue Adapters]
-    P[Polymarket REST / WebSocket] --> A
+> **About the screenshots:** The views below use **synthetic data** and a **presentation-only interface generated with Codex** to make the engine's workflow easy to understand.  
+> The underlying market integrations, normalization, matching, order-book analysis, persistence, execution logic, and tests are part of my project. The demo interface is not the production/operator UI and no real orders are represented in these screenshots.
 
-    A --> N[Normalization]
-    N --> M[Deterministic Match Engine]
-    M --> B[Order Book + Cost Analysis]
-    B --> R[Risk / Freshness Gates]
+### 1. System Overview
 
-    R --> O[Read-Only / Manual]
-    R --> PP[Paper Execution]
-    R --> L[Guarded Live Execution]
+The engine tracks normalized cross-venue market pairs, maintains live order-book data, and monitors feed health before evaluating candidates.
 
-    M --> DB[(PostgreSQL)]
-    B --> DB
-    R --> DB
-
-    DB --> UI[CLI / Dashboard / Reports]
-    R --> D[Discord Alerts]
-```
-
-At a high level, venue-specific integrations are separated from the shared market model and opportunity engine. This keeps the matching and pricing logic independent of either venue's raw API structure.
-
----
-
-## Key Engineering Work
-
-### Cross-Venue Normalization
-
-Kalshi and Polymarket represent markets differently, so the system translates both into shared internal models for sports, teams, market type, outcomes, status, price levels, volume, liquidity, and market metadata.
-
-Equivalent contracts are matched using deterministic rules rather than machine learning.
-
-### Depth-Aware Opportunity Analysis
-
-The engine evaluates executable order-book depth rather than relying on last-trade prices.
-
-It can walk multiple price levels to determine a size that both venues can support, then evaluates the opportunity after venue fees, modeled slippage, freshness checks, and configurable risk requirements.
-
-### Real-Time Market Data
-
-Market discovery uses REST APIs while active market tracking can use authenticated WebSocket feeds with REST fallback and revalidation.
-
-The application uses asynchronous I/O and bounded concurrency to retrieve venue data and order books efficiently.
-
-### Execution Safety
-
-Live execution is deliberately opt-in and disabled by default.
-
-Before submission, the system can revalidate market data, simulate the exact two-leg fill, check available capital, and derive strict fill-or-kill limit orders.
-
-Both initial legs are submitted concurrently. If fills become unequal, the executor includes rescue, unwind, and automatic-halt paths designed to avoid continuing with unresolved unmatched exposure.
-
-### Persistence and Operator Tooling
-
-PostgreSQL stores operational data including market observations, order-book snapshots, match decisions, opportunities, paper trades, alerts, and system events.
-
-The project also includes:
-
-- Rich terminal views
-- A read-only local web dashboard
-- Discord alerts
-- HTML / CSV reports
-- Feed and system-health diagnostics
-
----
-
-## Technology Stack
-
-**Language:** Python 3.12+
-
-**Networking / APIs**
-- HTTPX
-- WebSockets
-- Asyncio
-- Authenticated REST and WebSocket integrations
-
-**Data / Validation**
-- Pydantic
-- SQLAlchemy
-- PostgreSQL
-- Psycopg
-- Alembic
-
-**CLI / Operator Tools**
-- Typer
-- Rich
-- Discord alerts
-- HTML / CSV reporting
-
-**Reliability**
-- Tenacity retry handling
-- Bounded concurrency
-- Streaming reconnect logic
-- REST fallback and pre-trade rechecks
-
-**Development / Testing**
-- Pytest
-- pytest-asyncio
-- Ruff
-- MyPy
-- Docker Compose for PostgreSQL
-
----
-
-## Testing
-
-The project has an automated test suite covering pricing, fees, order-book depth, market normalization, matching, risk checks, venue payloads, balances and positions, WebSocket handling, paper execution, live execution logic, and failure recovery.
-
-**Current audit result: 176 tests passing.**
-
-Tests use fake venue clients and simulated API responses so failure cases can be exercised without placing real orders.
-
-Paper mode can also evaluate live market data while simulating fills instead of submitting trades.
-
----
-
-## Measured Development Results
-
-A completed sample scan:
-
-- Normalized **73 markets**
-- Built **642 candidate pairs**
-- Approved **32 cross-venue matches**
-- Completed in **59.72 seconds**
-
-A separate runtime audit recorded:
-
-- **48 tracked cross-venue pairs**
-- **150 live order books**
-- **2 WebSocket feed tasks**
-
-These are development measurements, not claims of production capacity or profitability.
-
----
-
-## Screenshots
-
-> Screenshots in this showcase should use synthetic or heavily redacted data. Real balances, positions, order IDs, account identifiers, exact thresholds, and strategy settings are not published.
-
-### 1. Market Coverage / Dashboard
-
-Show the read-only dashboard with synthetic market names and aggregate system state.
-
-<!--
-<p align="center">
-  <img src="./screenshots/01-dashboard.png" width="900" alt="Prediction market arbitrage dashboard">
-</p>
--->
+![System overview](./screenshots/01-dashboard.png)
 
 ### 2. Cross-Venue Market Matching
 
-Show a sanitized example of one Kalshi contract paired with its corresponding Polymarket contract.
+Kalshi and Polymarket describe equivalent contracts differently. The engine normalizes venue-specific fields into a shared representation before approving a match.
 
-<!--
-<p align="center">
-  <img src="./screenshots/02-matched-market.png" width="900" alt="Matched Kalshi and Polymarket markets">
-</p>
--->
+![Matched Kalshi and Polymarket market](./screenshots/02-matched-market.png)
 
-### 3. Order-Book / Opportunity Analysis
+### 3. Depth-Aware Opportunity Analysis
 
-Show synthetic book depth and an evaluated opportunity, including fees or liquidity checks where visible without exposing private thresholds.
+The engine evaluates **executable ask depth**, not just headline or last-trade prices. It walks both books to determine a shared executable size and evaluates the paired cost after modeled fees and slippage.
 
-<!--
-<p align="center">
-  <img src="./screenshots/03-opportunity-analysis.png" width="900" alt="Order book and opportunity analysis">
-</p>
--->
+![Order-book depth and opportunity analysis](./screenshots/03-opportunity-analysis.png)
 
-### 4. Paper or Guarded Execution State
+### 4. Paper Execution and Safety Checks
 
-Show a paper-execution or sanitized execution-status view that demonstrates the workflow without exposing live account information.
+Paper mode simulates the two-leg workflow without submitting venue orders. The execution path revalidates books, checks capital, simulates both legs, and verifies that the final result is paired.
 
-<!--
-<p align="center">
-  <img src="./screenshots/04-execution.png" width="900" alt="Paper execution status">
-</p>
--->
+![Paper execution workflow](./screenshots/04-execution.png)
 
-### 5. Automated Tests
+### 5. Automated Testing
 
-A terminal screenshot of the passing test suite is useful supporting evidence.
+The project includes automated tests for pricing, normalization, matching, venue integrations, WebSocket behavior, risk checks, paper execution, live-execution logic, and failure handling.
 
-<!--
-<p align="center">
-  <img src="./screenshots/05-tests.png" width="900" alt="Automated test suite results">
-</p>
--->
+**Current test run: 225 passing tests.**
+
+![Pytest results showing 225 passing tests](./screenshots/05-tests.png)
 
 ---
 
-## Development Status
+## Engineering Highlights
 
-This is an **active-development local system**, not a continuously deployed production service.
+### Cross-Venue Normalization
+
+Venue adapters translate different Kalshi and Polymarket payloads into shared market, outcome, and order-book models.
+
+This keeps downstream matching and pricing logic independent of either venue's raw API structure.
+
+### Deterministic Contract Matching
+
+The matcher reconciles differences in team names, market structure, outcome orientation, and contract metadata to identify compatible binary markets.
+
+The exact matching rules remain private.
+
+### Async Market Data
+
+The system uses asynchronous REST requests and WebSocket feeds to retrieve market catalogs and maintain live order books across both venues.
+
+Bounded concurrency, reconnect behavior, caching, and REST fallback help keep the data pipeline responsive and recoverable.
+
+### Depth-Aware Pricing
+
+Instead of comparing only the best displayed prices, the engine walks available order-book levels to determine how much size can actually be executed across both venues.
+
+The evaluation includes modeled fees, slippage, freshness, liquidity, and configurable risk requirements.
+
+### Guarded Execution
+
+Live execution is opt-in and disabled by default.
+
+Before any submission, the system can revalidate books, simulate the two-leg fill, verify capital, and construct fill-or-kill limit orders.
+
+The two initial legs are submitted concurrently. Unequal fills enter rescue/unwind handling, and unresolved unmatched exposure halts further live execution.
+
+### Persistence and Observability
+
+PostgreSQL stores market observations, order-book snapshots, match decisions, opportunities, alerts, paper trades, and operational events.
+
+The project also includes terminal views, a read-only local dashboard, Discord alerts, HTML/CSV reporting, and feed/system diagnostics.
+
+---
+
+## Tech Stack
+
+**Language:** Python 3.12+
+
+**APIs & Concurrency:** HTTPX · WebSockets · asyncio  
+**Data & Validation:** Pydantic · SQLAlchemy · PostgreSQL · Psycopg · Alembic  
+**Reliability:** Tenacity · bounded concurrency · reconnect logic · REST fallback  
+**Interfaces:** Typer · Rich · Discord alerts · HTML/CSV reports  
+**Testing & Quality:** Pytest · pytest-asyncio · Ruff · MyPy  
+**Local Infrastructure:** Docker Compose for PostgreSQL
+
+---
+
+## Example Development Measurements
+
+A completed audit scan:
+
+- **73** normalized markets
+- **642** candidate pairs
+- **32** approved cross-venue matches
+- **59.72 seconds** for the completed discovery/matching sample
+
+These are development measurements, not claims of production capacity, uptime, or profitability.
+
+---
+
+## Project Status
+
+This is an **active-development local system**, not a continuously deployed production trading service.
 
 It has been validated against live market data through read-only, paper, and limited guarded-execution runs.
 
-Current limitations include incomplete automatic settlement/lifecycle handling and additional production-hardening work. Public documentation intentionally avoids claims of guaranteed profitability, risk-free execution, production uptime, or measured end-to-end trading latency.
+I do **not** present it as:
+
+- Guaranteed or risk-free arbitrage
+- A demonstrated profitable trading strategy
+- A production-grade unattended trading service
+- A machine-learning matching system
 
 ---
 
-## What Remains Private
+## What Stays Private
 
-The working source repository is kept private because the project contains strategy and execution details that are not necessary for demonstrating the engineering.
+The working repository remains private because it contains strategy and operational details that are not necessary to demonstrate the engineering.
 
 This showcase does not publish:
 
+- Source code
 - API keys, signing keys, or credentials
-- Wallet addresses or account identifiers
-- Balances, positions, or raw trade history
+- Account IDs, balances, positions, or raw trade history
 - Exact arbitrage thresholds
-- Exact market-matching rules
+- Exact contract-matching logic
 - Position-sizing logic
 - Risk-limit values
-- Execution timing or recheck policy
+- Execution timing and recheck policy
 - Production configuration
 - Full operational database schema
 
